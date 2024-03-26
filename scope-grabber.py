@@ -4,9 +4,6 @@ import argparse
 import csv
 from urllib import request
 
-# To fetch the value of 'charset' from 'Content-Type' header in the Response
-from email.message import Message
-
 examples = """
 Examples:
 [+] python3 scope-grabber.py -p paypal
@@ -60,25 +57,11 @@ def download_burp_suite_config_file(program):
     
 def download_scope_csv(program, csv_file):
     url = f"https://hackerone.com/teams/{program}/assets/download_csv.csv"
-
-    req = request.Request(url, headers=headers)
-    resp = request.urlopen(req, timeout=timeout)
-
-    m = Message()
-    m["Content-Type"] = resp.getheader("Content-Type")
-
-    charset = m.get_param("charset")
-
-    data = resp.read()
-
-    html = data.decode(charset)
-
-    with open(f"{path}/{program}/{csv_file}", "w") as f:
-        f.write(html)
-
+    request.urlretrieve(url, f"{path}/{program}/{csv_file}")
 
 def parse_csv(csv_file):
     urls = list()
+    wildcards = list()
 
     with open(f"{path}/{program}/{csv_file}", "r") as f:
         csv_reader = csv.DictReader(f)
@@ -88,11 +71,16 @@ def parse_csv(csv_file):
         next(itercsv)
 
         for row in itercsv:
-            if row["asset_type"] == "URL" or row["asset_type"] == "WILDCARD":
+            if row["asset_type"] == "URL" and "*" not in row["identifier"]:
                 urls.append(row["identifier"])
+            if row["asset_type"] == "WILDCARD" or (row["asset_type"] == "URL" and "*" in row["identifier"]):
+                wildcards.append(row["identifier"])
 
-    with open(f"{path}/{program}/URLs.txt", "w") as f:
-            f.write("\n".join(urls))
+    with open(urls_file, "w") as f:
+        f.write("\n".join(urls))
+
+    with open(wildcards_file, "w") as f:
+        f.write("\n".join(wildcards))
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -104,6 +92,9 @@ if __name__ == "__main__":
         path = args.output
     else:
         path = "."
+
+    urls_file = f"{path}/{program}/URLs.txt"
+    wildcards_file = f"{path}/{program}/Wildcards.txt"
 
     if not os.path.exists(f"{path}/{program}"):
         os.mkdir(f"{path}/{program}")
