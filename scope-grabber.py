@@ -51,19 +51,19 @@ headers = {
 
 timeout = 5
 
-def download_burp_suite_config_file(program):
+def download_burp_suite_config_file(program, path):
     url = f"https://hackerone.com/teams/{program}/assets/download_burp_project_file.json"
-    request.urlretrieve(url, f"{path}/{program}/burp_config.json")
+    request.urlretrieve(url, f"{path}/burp_config.json")
     
-def download_scope_csv(program, csv_file):
+def download_scope_csv(program, path, csv_file):
     url = f"https://hackerone.com/teams/{program}/assets/download_csv.csv"
-    request.urlretrieve(url, f"{path}/{program}/{csv_file}")
+    request.urlretrieve(url, f"{path}/{csv_file}")
 
-def parse_csv(csv_file):
+def parse_csv(path, csv_file, urls_file, wildcards_file):
     urls = list()
     wildcards = list()
 
-    with open(f"{path}/{program}/{csv_file}", "r") as f:
+    with open(f"{path}/{csv_file}", "r") as f:
         csv_reader = csv.DictReader(f)
         itercsv = iter(csv_reader)
 
@@ -91,20 +91,20 @@ if __name__ == "__main__":
     if args.output:
         path = args.output
     else:
-        path = "."
+        path = f"./{program}"
 
-    urls_file = f"{path}/{program}/URLs.txt"
-    wildcards_file = f"{path}/{program}/Wildcards.txt"
+    urls_file = f"{path}/URLs.txt"
+    wildcards_file = f"{path}/Wildcards.txt"
 
-    if not os.path.exists(f"{path}/{program}"):
-        os.mkdir(f"{path}/{program}")
+    if not os.path.exists(f"{path}"):
+        os.mkdir(f"{path}")
 
     try:
-        download_scope_csv(program, csv_file)
-        parse_csv(csv_file)
+        download_scope_csv(program, path, csv_file)
+        parse_csv(path, csv_file, urls_file, wildcards_file)
 
         if args.b:
-            download_burp_suite_config_file(program)
+            download_burp_suite_config_file(program, path)
     except TimeoutError:
         print("Timed out")
     except StopIteration:
